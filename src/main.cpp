@@ -16,10 +16,10 @@ int main(int argc, char* argv[])
 
   //
   // Prepare input
-  //ROOT::EnableImplicitMT(1);
+  //ROOT::EnableImplicitMT(4);
   ROOT::RDataFrame df(std::make_unique<RPythiaSource>(argv[1],100));
 
-  df.Snapshot("outTree","test.root",{"nparticles"});
+  df.Snapshot("outTree","test.root",{"nparticles","particles_pt","particles_eta","particles_phi","particles_m","particles_pdg","particles_status"});
   //df.Display({"particles_pt"})->Print();
   
   return 0;

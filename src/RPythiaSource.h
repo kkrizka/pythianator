@@ -36,13 +36,15 @@ private:
   unsigned int m_nSlots=1;
   bool m_ranged=false;
 
-  std::vector<std::string> m_columns = {"nparticles"};
+  std::vector<std::string> m_columns = {"nparticles", "particles_pt", "particles_eta", "particles_phi", "particles_m", "particles_pdg", "particles_status"};
   std::vector<std::shared_ptr<Pythia8::Pythia>> m_pythias;
 
   std::unordered_map<std::string, std::vector<void*>> m_columnsAddrs;
+  std::unordered_map<std::string, std::string>        m_columnsTypes;
   std::unordered_map<std::string, std::vector<float>> m_column_float;
   std::unordered_map<std::string, std::vector<uint32_t>> m_column_uint32;
-  std::unordered_map<std::string, std::vector<std::vector<ROOT::VecOps::RVec<float>>>> m_column_vector_float;
+  std::unordered_map<std::string, std::vector<ROOT::VecOps::RVec<float  >>> m_column_vector_float;
+  std::unordered_map<std::string, std::vector<ROOT::VecOps::RVec<int32_t>>> m_column_vector_int32;
 };
 
 #endif // RPYTHIASOURCE_H
