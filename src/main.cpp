@@ -8,19 +8,20 @@ int main(int argc, char* argv[])
 {
   //
   // Check arguments
-  if(argc<2)
+  if(argc!=3)
     {
-      std::cerr << "usage: " << argv[0] << " pythia.cmnd" << std::endl;
+      std::cerr << "usage: " << argv[0] << " pythia.cmnd nEvents" << std::endl;
       return 1;
     }
+  std::string cmnd=argv[1];
+  uint32_t nEvents=std::stoul(argv[2]);
 
   //
   // Prepare input
-  //ROOT::EnableImplicitMT(4);
-  ROOT::RDataFrame df(std::make_unique<RPythiaSource>(argv[1],100));
+  ROOT::EnableImplicitMT();
+  ROOT::RDataFrame df(std::make_unique<RPythiaSource>(cmnd,nEvents));
 
   df.Snapshot("outTree","test.root",{"nparticles","particles_pt","particles_eta","particles_phi","particles_m","particles_pdg","particles_status"});
-  //df.Display({"particles_pt"})->Print();
   
   return 0;
 }
