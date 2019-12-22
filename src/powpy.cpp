@@ -7,45 +7,49 @@
 #include <TTree.h>
 #include <ROOT/RVec.hxx>
 
-#define MAXPARTICLES 4096
+#define MAXPARTICLES 8192
 
 int main(int argc, char* argv[])
 {
   //
   // Check arguments
-  if(argc!=3)
+  if(argc!=4)
     {
-      std::cerr << "usage: " << argv[0] << " pythia.cmnd data.lhe" << std::endl;
+      std::cerr << "usage: " << argv[0] << " pythia.cmnd data.lhe output.root" << std::endl;
       return 1;
     }
   std::string cmnd=argv[1];
   std::string lhe =argv[2];
+  std::string outp=argv[3];
 
   // Initialize ROOT output
-  TFile *fh=TFile::Open("output.root","RECREATE");
+  TFile *fh=TFile::Open(outp.c_str(),"RECREATE");
 
   TTree *t=new TTree("outTree","outTree");
 
-  uint32_t br_nparticles;
-  t->Branch("nparticles"    , &br_nparticles,"nparticles/i");
+  float br_weight;
+  t->Branch("weight"        , &br_weight    ,"weight/F"    );
+
+  uint32_t br_nparticle;
+  t->Branch("nparticle"    , &br_nparticle,"nparticle/i");
   
-  float   br_particles_pt    [MAXPARTICLES];
-  t->Branch("particles_pt"    , &br_particles_pt    ,"particles_pt[nparticles]/F"    );
+  float   br_particle_pt    [MAXPARTICLES];
+  t->Branch("particle_pt"    , &br_particle_pt    ,"particle_pt[nparticle]/F"    );
 
-  float   br_particles_eta   [MAXPARTICLES];
-  t->Branch("particles_eta"   , &br_particles_eta   ,"particles_eta[nparticles]/F"   );
+  float   br_particle_eta   [MAXPARTICLES];
+  t->Branch("particle_eta"   , &br_particle_eta   ,"particle_eta[nparticle]/F"   );
 
-  float   br_particles_phi   [MAXPARTICLES];
-  t->Branch("particles_phi"   , &br_particles_phi   ,"particles_phi[nparticles]/F"   );
+  float   br_particle_phi   [MAXPARTICLES];
+  t->Branch("particle_phi"   , &br_particle_phi   ,"particle_phi[nparticle]/F"   );
 
-  float   br_particles_m     [MAXPARTICLES];
-  t->Branch("particles_m"     , &br_particles_m     ,"particles_m[nparticles]/F"     );
+  float   br_particle_m     [MAXPARTICLES];
+  t->Branch("particle_m"     , &br_particle_m     ,"particle_m[nparticle]/F"     );
 
-  int32_t br_particles_pdg   [MAXPARTICLES];
-  t->Branch("particles_pdg"   , &br_particles_pdg   ,"particles_pdg[nparticles]/I"   );
+  int32_t br_particle_pdg   [MAXPARTICLES];
+  t->Branch("particle_pdg"   , &br_particle_pdg   ,"particle_pdg[nparticle]/I"   );
 
-  int32_t br_particles_status[MAXPARTICLES];
-  t->Branch("particles_status", &br_particles_status,"particles_status[nparticles]/I");
+  int32_t br_particle_status[MAXPARTICLES];
+  t->Branch("particle_status", &br_particle_status,"particle_status[nparticle]/I");
   
   //
   // Initialize Pythia
@@ -53,6 +57,8 @@ int main(int argc, char* argv[])
 
   // Load configuration file
   pythia.readFile(cmnd);
+  pythia.readString("Main:numberOfEvents = 0");
+  pythia.readString("Beams:frameType = 4");
   pythia.readString("Beams:LHEF = "+lhe);
 
   // Read in main settings
@@ -85,7 +91,11 @@ int main(int argc, char* argv[])
     }
 
   // Initialize and list settings
-  pythia.init();
+  if(!pythia.init())
+    {
+      std::cerr << "Error: initialize" << std::endl;
+      return 1;
+    }
 
   // Counters for number of ISR/FSR emissions vetoed
   unsigned long int nISRveto = 0, nFSRveto = 0;
@@ -114,15 +124,27 @@ int main(int argc, char* argv[])
 	}
 
       // Save the event
-      br_nparticles=pythia.event.size();
-      for(uint32_t i=0;i<br_nparticles;++i)
+      br_weight=pythia.info.weight();
+
+      uint32_t nPart=pythia.event.size();
+      if(nPart>MAXPARTICLES)
 	{
-	  br_particles_pt    [i]=pythia.event[i].pT    ();
-	  br_particles_eta   [i]=pythia.event[i].eta   ();
-	  br_particles_phi   [i]=pythia.event[i].phi   ();
-	  br_particles_m     [i]=pythia.event[i].m     ();
-	  br_particles_pdg   [i]=pythia.event[i].id    ();
-	  br_particles_status[i]=pythia.event[i].status();
+	  std::cerr << "Error: Too many particles " << br_nparticle << std::endl;
+	  return 1;
+	}
+
+      br_nparticle=0;
+      for(uint32_t i=0;i<nPart;++i)
+	{
+	  if(!pythia.event[i].isResonance() && !pythia.event[i].isFinal())
+	    continue;
+	  br_particle_pt    [br_nparticle]=pythia.event[i].pT    ();
+	  br_particle_eta   [br_nparticle]=pythia.event[i].eta   ();
+	  br_particle_phi   [br_nparticle]=pythia.event[i].phi   ();
+	  br_particle_m     [br_nparticle]=pythia.event[i].m     ();
+	  br_particle_pdg   [br_nparticle]=pythia.event[i].id    ();
+	  br_particle_status[br_nparticle]=pythia.event[i].status();
+	  ++br_nparticle;
 	}
       t->Fill();
 
